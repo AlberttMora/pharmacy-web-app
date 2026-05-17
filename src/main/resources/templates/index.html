@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmacia — Dashboard</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <span class="sidebar-icon">⚕</span>
+        <span class="sidebar-title">Farmacia</span>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="#seccion-pacientes"    class="nav-item">👤 Pacientes</a>
+        <a href="#seccion-medicamentos" class="nav-item">💊 Medicamentos</a>
+    </nav>
+</aside>
+
+<main class="main">
+
+    <div class="topbar">
+        <h1 class="topbar-title">Dashboard</h1>
+        <div id="ws-status" class="ws-badge ws-offline">⬤ Desconectado</div>
+    </div>
+
+    <div th:if="${exito}" class="alert alert-ok" th:text="${exito}"></div>
+    <div th:if="${error}" class="alert alert-err" th:text="${error}"></div>
+
+    <!-- ══ PACIENTES ══════════════════════════════════════════════════════════ -->
+    <section id="seccion-pacientes" class="section">
+        <div class="section-header">
+            <h2>Pacientes</h2>
+            <button class="btn btn-primary" onclick="toggleForm('form-paciente')">+ Nuevo paciente</button>
+        </div>
+
+        <div id="form-paciente" class="form-card" th:classappend="${pacienteEdit != null} ? ' visible' : ''">
+            <h3 th:text="${pacienteEdit != null} ? 'Editar paciente' : 'Nuevo paciente'">Nuevo paciente</h3>
+
+            <form th:action="${pacienteEdit != null} ? @{/actualizarPaciente} : @{/guardarPaciente}" method="post">
+                <input type="hidden" name="id" th:value="${pacienteEdit != null} ? ${pacienteEdit.id} : ''" />
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Nombre</label>
+                        <input name="nombre" placeholder="Nombre"
+                               th:value="${pacienteEdit != null} ? ${pacienteEdit.nombre} : ''" required>
+                    </div>
+                    <div class="field">
+                        <label>Apellidos</label>
+                        <input name="apellidos" placeholder="Apellidos"
+                               th:value="${pacienteEdit != null} ? ${pacienteEdit.apellidos} : ''" required>
+                    </div>
+                    <div class="field">
+                        <label>Edad</label>
+                        <select name="edad" required>
+                            <option value="">-- Seleccione --</option>
+                            <option value="3"  th:selected="${pacienteEdit != null and pacienteEdit.edad == 3}">3 años</option>
+                            <option value="7"  th:selected="${pacienteEdit != null and pacienteEdit.edad == 7}">7 años</option>
+                            <option value="12" th:selected="${pacienteEdit != null and pacienteEdit.edad == 12}">12 años</option>
+                            <option value="16" th:selected="${pacienteEdit != null and pacienteEdit.edad == 16}">16 años</option>
+                            <option value="18" th:selected="${pacienteEdit != null and pacienteEdit.edad == 18}">18 años</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Sexo</label>
+                        <select name="sexo" required>
+                            <option value="">-- Seleccione --</option>
+                            <option value="M" th:selected="${pacienteEdit != null and pacienteEdit.sexo == 'M'}">Masculino</option>
+                            <option value="F" th:selected="${pacienteEdit != null and pacienteEdit.sexo == 'F'}">Femenino</option>
+                        </select>
+                    </div>
+                    <div class="field field-full">
+                        <label>Motivo de consulta</label>
+                        <input name="motivoConsulta" placeholder="Motivo de consulta"
+                               th:value="${pacienteEdit != null} ? ${pacienteEdit.motivoConsulta} : ''">
+                    </div>
+                    <div class="field field-full">
+                        <label>Medicamentos <span class="hint">(Ctrl+click para seleccionar varios, opcional)</span></label>
+                        <select name="medicamentosIds" multiple class="select-multiple">
+                            <option th:each="m : ${medicamentos}"
+                                    th:value="${m.id}"
+                                    th:text="${m.nombre} + ' — edad: ' + ${m.edadRecomendada}"
+                                    th:selected="${pacienteEdit != null and #lists.contains(pacienteEdit.medicamentos, m)}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"
+                            th:text="${pacienteEdit != null} ? 'Actualizar' : 'Guardar'">Guardar</button>
+                    <button type="button" class="btn btn-ghost" onclick="toggleForm('form-paciente')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th>Nombre</th><th>Apellidos</th>
+                        <th>Edad</th><th>Sexo</th><th>Motivo</th>
+                        <th>Medicamentos</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(pacientes)}">
+                        <td colspan="8" class="empty">No hay pacientes registrados</td>
+                    </tr>
+                    <tr th:each="p : ${pacientes}">
+                        <td th:text="${p.id}"></td>
+                        <td th:text="${p.nombre}"></td>
+                        <td th:text="${p.apellidos}"></td>
+                        <td th:text="${p.edad}"></td>
+                        <td th:text="${p.sexo}"></td>
+                        <td th:text="${p.motivoConsulta}"></td>
+                        <td>
+                            <span th:if="${#lists.isEmpty(p.medicamentos)}" class="tag tag-empty">Ninguno</span>
+                            <span th:each="m : ${p.medicamentos}" class="tag" th:text="${m.nombre}"></span>
+                        </td>
+                        <td class="actions">
+                            <a th:href="@{'/editarPaciente/' + ${p.id}}" class="btn-action btn-edit">Editar</a>
+                            <a th:href="@{'/eliminarPaciente/' + ${p.id}}" class="btn-action btn-del"
+                               onclick="return confirm('¿Eliminar este paciente?')">Eliminar</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ══ MEDICAMENTOS ═══════════════════════════════════════════════════════ -->
+    <section id="seccion-medicamentos" class="section">
+        <div class="section-header">
+            <h2>Medicamentos</h2>
+            <button class="btn btn-primary" onclick="toggleForm('form-medicamento')">+ Nuevo medicamento</button>
+        </div>
+
+        <div id="form-medicamento" class="form-card" th:classappend="${medicamentoEdit != null} ? ' visible' : ''">
+            <h3 th:text="${medicamentoEdit != null} ? 'Editar medicamento' : 'Nuevo medicamento'">Nuevo medicamento</h3>
+
+            <form th:action="${medicamentoEdit != null} ? @{/actualizarMedicamento} : @{/guardarMedicamento}" method="post">
+                <input type="hidden" name="id" th:value="${medicamentoEdit != null} ? ${medicamentoEdit.id} : ''" />
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Nombre</label>
+                        <input name="nombre" placeholder="Nombre del medicamento"
+                               th:value="${medicamentoEdit != null} ? ${medicamentoEdit.nombre} : ''" required>
+                    </div>
+                    <div class="field">
+                        <label>Edad recomendada</label>
+                        <select name="edadRecomendada" required>
+                            <option value="">-- Seleccione --</option>
+                            <option value="3"  th:selected="${medicamentoEdit != null and medicamentoEdit.edadRecomendada == 3}">3 años</option>
+                            <option value="7"  th:selected="${medicamentoEdit != null and medicamentoEdit.edadRecomendada == 7}">7 años</option>
+                            <option value="12" th:selected="${medicamentoEdit != null and medicamentoEdit.edadRecomendada == 12}">12 años</option>
+                            <option value="16" th:selected="${medicamentoEdit != null and medicamentoEdit.edadRecomendada == 16}">16 años</option>
+                            <option value="18" th:selected="${medicamentoEdit != null and medicamentoEdit.edadRecomendada == 18}">18 años</option>
+                        </select>
+                    </div>
+                    <div class="field field-full">
+                        <label>Descripción</label>
+                        <input name="descripcion" placeholder="Descripción"
+                               th:value="${medicamentoEdit != null} ? ${medicamentoEdit.descripcion} : ''">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"
+                            th:text="${medicamentoEdit != null} ? 'Actualizar' : 'Guardar'">Guardar</button>
+                    <button type="button" class="btn btn-ghost" onclick="toggleForm('form-medicamento')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th><th>Nombre</th><th>Descripción</th><th>Edad recomendada</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(medicamentos)}">
+                        <td colspan="5" class="empty">No hay medicamentos registrados</td>
+                    </tr>
+                    <tr th:each="m : ${medicamentos}">
+                        <td th:text="${m.id}"></td>
+                        <td th:text="${m.nombre}"></td>
+                        <td th:text="${m.descripcion}"></td>
+                        <td th:text="${m.edadRecomendada} + ' años'"></td>
+                        <td class="actions">
+                            <a th:href="@{'/editarMedicamento/' + ${m.id}}" class="btn-action btn-edit">Editar</a>
+                            <a th:href="@{'/eliminarMedicamento/' + ${m.id}}" class="btn-action btn-del"
+                               onclick="return confirm('¿Eliminar medicamento? Se desvinculará de los pacientes.')">Eliminar</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+<script>
+    function toggleForm(id) {
+        document.getElementById(id).classList.toggle('visible');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const pe = document.querySelector('#form-paciente.visible');
+        const me = document.querySelector('#form-medicamento.visible');
+        if (pe) pe.scrollIntoView({ behavior: 'smooth' });
+        if (me) me.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    const wsStatus = document.getElementById('ws-status');
+    const socket   = new SockJS('/ws');
+    const stomp    = Stomp.over(socket);
+    stomp.debug    = null;
+
+    stomp.connect({}, function () {
+        wsStatus.textContent = '⬤ Conectado';
+        wsStatus.className   = 'ws-badge ws-online';
+
+        stomp.subscribe('/topic/pacientes', function () {
+            showToast('Pacientes actualizados');
+            setTimeout(() => location.reload(), 1200);
+        });
+        stomp.subscribe('/topic/medicamentos', function () {
+            showToast('Medicamentos actualizados');
+            setTimeout(() => location.reload(), 1200);
+        });
+    }, function () {
+        wsStatus.textContent = '⬤ Desconectado';
+        wsStatus.className   = 'ws-badge ws-offline';
+    });
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className   = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+</script>
+</body>
+</html>
